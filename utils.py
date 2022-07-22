@@ -86,6 +86,7 @@ def load_data(config):
 
 def one_hot_embedding(labels, num_classes, soft):
     """Embedding labels to one-hot form.
+    # 根本没用labels啊
 
     Args:
       labels: (LongTensor) class labels, sized [N,].
@@ -140,17 +141,16 @@ def soft_label(soft):
     return soft.exp().clone().detach()
 
 
-def load_graph_homo(dataset, config):
+def load_graph_homo(config):
 
 
     struct_edges = np.genfromtxt(config.structgraph_path, dtype=np.int32)
     sedges = np.array(list(struct_edges), dtype=np.int32).reshape(struct_edges.shape)
     sadj = sp.coo_matrix((np.ones(sedges.shape[0]), (sedges[:, 0], sedges[:, 1])), shape=(config.n, config.n), dtype=np.float32)
-    sadj = sadj + sadj.T.multiply(sadj.T > sadj) - sadj.multiply(sadj.T > sadj)
+    sadj = sadj + sadj.T.multiply(sadj.T > sadj) - sadj.multiply(sadj.T > sadj)   # 使其对称
     sadj = sadj+sp.eye(sadj.shape[0])
-    nsadj = normalize(sadj+sp.eye(sadj.shape[0]))
+    nsadj = normalize(sadj+sp.eye(sadj.shape[0]))   # 这里似乎多加了一个环
     nsadj = sparse_mx_to_torch_sparse_tensor(nsadj)
-
     return sadj, nsadj
 
 def load_arti_graph(dataset):

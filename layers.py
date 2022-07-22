@@ -58,7 +58,7 @@ class GraphConvolution_homo(Module):
             self.bias = Parameter(torch.FloatTensor(out_features))
         else:
             self.register_parameter('bias', None)
-        self.adjacency_mask = Parameter(adj.clone())
+        self.adjacency_mask = Parameter(adj.clone())   # T
         self.reset_parameters()
 
 
@@ -72,19 +72,23 @@ class GraphConvolution_homo(Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, adj, bi_adj, output, labels_for_lp):
+        '''
+        adj: A
+        bi_adj: A^2
+        '''
 
-        new_bi = bi_adj.clone()
-        new_bi = new_bi * self.adjacency_mask
-        new_bi = F.normalize(new_bi, p=1, dim=1)
+        new_bi = bi_adj.clone()   # A^2
+        new_bi = new_bi * self.adjacency_mask   # A^2 \odot T
+        new_bi = F.normalize(new_bi, p=1, dim=1)   # normalize
         identity = torch.eye(adj.shape[0])
         output = output.exp()
-        homo_matrix = torch.matmul(output, output.t())
-        homo_matrix = 0.4 * homo_matrix + 1 * new_bi
-        y_hat = torch.mm(new_bi, labels_for_lp)
+        homo_matrix = torch.matmul(output, output.t())   # 来自MLP的结构
+        homo_matrix = 0.4 * homo_matrix + 1 * new_bi   # 0.4S+D^-1 (A^2 \odot T)
+        y_hat = torch.mm(new_bi, labels_for_lp)   # lp
 
-        bi_adj = torch.mul(bi_adj, homo_matrix)
+        bi_adj = torch.mul(bi_adj, homo_matrix)   # A^2 \odot (0.4S+D^-1 (A^2 \odot T))
 
-
+        # 这一块是GNN的聚合
         with torch.no_grad():
             bi_row_sum = torch.sum(bi_adj, dim=1, keepdim=True)
             bi_r_inv = torch.pow(bi_row_sum, -1).flatten()  # np.power(rowsum, -1).flatten()
@@ -97,7 +101,7 @@ class GraphConvolution_homo(Module):
         support_bi = torch.mm(input, self.weight_bi)
         output = torch.spmm(identity, support)
         output_bi = torch.spmm(bi_adj, support_bi)
-        output = output + torch.mul(self.w, output_bi)
+        output = output + torch.mul(self.w, output_bi)   # 两个参数变成了一个参数
 
         if self.bias is not None:
             return output + self.bias, y_hat, homo_matrix

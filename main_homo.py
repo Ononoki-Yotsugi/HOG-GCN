@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("-d", "--dataset", help="dataset", default="cora", type=str, required=False)
     parse.add_argument("-l", "--labelrate",
-                       help="labeled data for train per class", default=20, type=int, required=False)
+                       help="labeled data for train per class", default=20, type=int, required=False)   # 根本用不到
     parse.add_argument("-r", "--r", help="threshhood", default=0.8, type=float, required=False)
     parse.add_argument("-r2", "--r2", help="threshhood", default=0.1, type=float, required=False)
     parse.add_argument("-epochs", "--epochs", help="epochs", default=100, type=float, required=False)
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     config_file = "./config/" + str(args.dataset) + ".ini"
     config = Config(config_file)
 
-    cuda = False
+    cuda = False   # 这个为什么设置为false->没有使用gpu!
 
     use_seed = True  # True
 
@@ -35,8 +35,14 @@ if __name__ == "__main__":
             torch.cuda.manual_seed(config.seed)
 
    
-    adj, sadj = load_graph_homo(args.labelrate, config)
+    adj, sadj = load_graph_homo(config)   # adj有sp自环，sadj是normalize过的adj，而且多加了一个自环
     features, labels, idx_train, idx_val, idx_test = load_data(config)
+    '''
+    features: dense tensor
+    labels: [1,2,3] tensor
+    idx_train: [5,9,162,1] tensor
+    idx_val,idx_test the same
+    '''
 
     adj = torch.tensor(adj.todense(), dtype=torch.float32)
 
@@ -71,7 +77,7 @@ if __name__ == "__main__":
 
     si_adj = adj.clone()
     bi_adj = adj.mm(adj)
-    labels_for_lp = one_hot_embedding(labels, labels.max().item() + 1, output).type(torch.FloatTensor)
+    labels_for_lp = one_hot_embedding(labels, labels.max().item() + 1, output).type(torch.FloatTensor)   # 这个labels_for_lp不符合论文啊
 
     model_HGCN = HGCN(
               nfeat = config.fdim,

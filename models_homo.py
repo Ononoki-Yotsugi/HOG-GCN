@@ -27,7 +27,7 @@ class GCN_homo(nn.Module):
     def __init__(self, nfeat, adj, nhid, out, dropout):
         super(GCN_homo, self).__init__()
         self.gc1 = GraphConvolution_homo(nfeat, adj, nhid)
-        self.gc2 = GraphConvolution_homo(nhid, adj, nhid)
+        self.gc2 = GraphConvolution_homo(nhid, adj, nhid)   # 没用？
         self.gc3 = GraphConvolution_homo(nhid, adj, out)
         self.dropout = dropout
 
@@ -62,6 +62,7 @@ class Attention(nn.Module):
 class MLP(nn.Module):
     def __init__(self, n_feat, n_hid, nclass, dropout):
         super(MLP, self).__init__()
+        # 两层linear
         self.mlp = nn.Sequential(
             nn.Linear(n_feat, n_hid),
             #nn.ReLU(),
@@ -85,7 +86,7 @@ class HGCN(nn.Module):
         self.dropout = dropout
         self.a = nn.Parameter(torch.zeros(size=(nhid2, 1)))
         nn.init.xavier_uniform_(self.a.data, gain=1.414)
-        self.attention = Attention(nhid2)
+        self.attention = Attention(nhid2)   # 没用？
         self.tanh = nn.Tanh()
 
         self.MLP = nn.Sequential(
